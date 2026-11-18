@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101820">
+  <meta name="description" content="Suivi personnel et estimation de salaire ambulancier, utilisable hors ligne.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <title>SALAIRE Ambulancier</title>
+</head>
+<body>
+<header class="topbar">
+  <div><div class="eyebrow">SUIVI DE PAIE PERSONNEL</div><h1>SALAIRE <span>Ambulancier</span></h1></div>
+  <button id="themeToggle" class="roundbtn" aria-label="Changer le thème" title="Changer le thème">◐</button>
+</header>
+<nav class="tabs" aria-label="Navigation principale">
+  <button class="tab active" data-tab="home">Résumé</button>
+  <button class="tab" data-tab="days">Journées</button>
+  <button class="tab" data-tab="simulation">Simulation</button>
+  <button class="tab" data-tab="compare">Bulletin</button>
+  <button class="tab" data-tab="settings">Réglages</button>
+</nav>
+<main>
+  <section id="home" class="panel active">
+    <div class="hero">
+      <div class="eyebrow">NET ESTIMÉ DU MOIS</div>
+      <div id="homeNet" class="hero-number">0,00 €</div>
+      <p>Estimation indicative · à comparer avec ton bulletin</p>
+      <label class="month-label">Mois de paie <input id="homeMonth" type="month"></label>
+    </div>
+    <div class="statgrid">
+      <article class="stat"><small>Heures saisies</small><strong id="homeHours">0 h</strong></article>
+      <article class="stat"><small>HS 25 % / 50 %</small><strong id="homeOvertime">0 h</strong></article>
+      <article class="stat"><small>Brut estimé</small><strong id="homeGross">0,00 €</strong></article>
+    </div>
+    <div class="section-head"><h2>Raccourcis</h2></div>
+    <div class="button-row">
+      <button class="primary" data-go="days">＋ Ajouter une journée</button>
+      <button class="secondary" data-go="simulation">Voir le calcul</button>
+    </div>
+    <div class="notice"><b>Important :</b> cette application reproduit les principaux paramètres et formules repérés dans ton classeur. Certaines formules du classeur sont ambiguës ou semblent contenir des références décalées. Les points concernés sont signalés dans « Calculs & limites ». Ce n’est ni un bulletin officiel ni une garantie de conformité de la paie.</div>
+    <div class="section-head"><h2>Dernières saisies</h2><span id="homeCount" class="muted">0 journée</span></div>
+    <div id="recentDays" class="list empty">Aucune journée saisie.</div>
+  </section>
+
+  <section id="days" class="panel">
+    <div class="section-head section-head-wrap">
+      <div><div class="eyebrow">SAISIE DU TEMPS ET DES PRIMES</div><h2>Journées travaillées</h2></div>
+      <button id="newDay" class="primary">＋ Ajouter</button>
+    </div>
+    <div id="dayEditor" class="card hidden">
+      <div class="section-head"><h3 id="editorTitle">Nouvelle journée</h3><button id="closeEditor" class="textbtn">Fermer</button></div>
+      <div class="formgrid">
+        <label>Date<input id="fDate" type="date" required></label>
+        <label>Début<input id="fStart" type="time" value="08:00"></label>
+        <label>Fin<input id="fEnd" type="time" value="17:00"></label>
+        <label>Pause non payée (minutes)<input id="fBreak" type="number" min="0" step="5" value="30"></label>
+        <label class="wide">TTE — temps de travail effectif (heures)
+          <input id="fTte" type="number" min="0" step="0.25" placeholder="Calculé avec début, fin et pause si laissé vide">
+        </label>
+        <label>JF — jour férié (compte)<input id="fJf" type="number" min="0" step="1" value="0"></label>
+        <label>PLT — repas unique (compte)<input id="fPlt" type="number" min="0" step="1" value="0"></label>
+        <label>P.EXT — repas extérieur (compte)<input id="fPext" type="number" min="0" step="1" value="0"></label>
+        <label>AS — prime UPH (compte)<input id="fAs" type="number" min="0" step="1" value="0"></label>
+        <label>GPJ/N — prime de garde (compte)<input id="fGpj" type="number" min="0" step="1" value="0"></label>
+        <label>Dim/Fer — dimanche ou férié (compte)<input id="fDimfer" type="number" min="0" step="1" value="0"></label>
+        <label>Maj HJF — heures majorées férié<input id="fMajHjf" type="number" min="0" step="0.25" value="0"></label>
+        <label>Dépassement 12 h (compte)<input id="fDep12" type="number" min="0" step="1" value="0"></label>
+        <label>CP J — jour CP pour ajustement hebdo<input id="fCpJ" type="number" min="0" step="1" value="0"></label>
+      </div>
+      <label>Note<textarea id="fNote" rows="2" placeholder="Ex. garde SAMU, mission longue, correction d'horaire…"></textarea></label>
+      <div class="button-row right"><button id="cancelDay" class="secondary">Annuler</button><button id="saveDay" class="primary">Enregistrer</button></div>
+    </div>
+    <div class="subhead"><h3>Journées du mois sélectionné</h3><span id="dayMonthLabel" class="muted"></span></div>
+    <div id="allDays" class="list empty">Aucune journée saisie.</div>
+    <div class="section-head"><h2>Ajustements par semaine</h2></div>
+    <p class="muted smalltext">Le classeur ajoute 35 h pour une semaine complète de congé et réduit le seuil hebdomadaire de 7 h par JF et de 5,8 h par CP J. Vérifie ces ajustements avant de te fier au résultat.</p>
+    <div class="week-add">
+      <label>Semaine à ajouter (choisis une date de cette semaine)<input id="leaveWeekDate" type="date"></label>
+      <button id="addLeaveWeek" class="secondary">＋ Ajouter une semaine complète de congé</button>
+    </div>
+    <div id="weekSettings" class="week-list"></div>
+  </section>
+
+  <section id="simulation" class="panel">
+    <div class="eyebrow">DÉTAIL DU CALCUL</div><h2>Simulation du salaire</h2>
+    <label class="month-label standalone">Mois de paie <input id="simMonth" type="month"></label>
+    <div class="card result-card">
+      <div class="result-line"><span>Salaire brut estimé</span><b id="simGross">0,00 €</b></div>
+      <div class="result-line"><span>Cotisations estimées</span><b id="simDeductions">− 0,00 €</b></div>
+      <div class="result-line"><span>Repas ext. / GPJ (hors brut)</span><b id="simReimburse">+ 0,00 €</b></div>
+      <div class="result-line grand"><span>Net estimé</span><b id="simNet">0,00 €</b></div>
+    </div>
+    <div class="card"><h3>Composition du brut</h3><div id="grossBreakdown" class="breakdown"></div></div>
+    <div class="card"><h3>Cotisations estimées</h3><div id="deductionBreakdown" class="breakdown"></div></div>
+    <div class="card"><h3>Détail des heures par semaine</h3><div id="weekBreakdown" class="breakdown"></div></div>
+    <div class="notice"><b>Limites connues :</b> les seuils d'heures supplémentaires sont calculés semaine par semaine sur les saisies du mois. Pour une semaine chevauchant deux mois, saisis toutes les journées de cette semaine et contrôle le résultat. Le classeur contient aussi des formules de congés et de CP J dont certaines références semblent incohérentes ; l'application les expose avec des ajustements modifiables plutôt que de masquer l'incertitude.</div>
+    <button id="printPdf" class="primary full">Exporter / Imprimer en PDF</button>
+  </section>
+
+  <section id="compare" class="panel">
+    <div class="eyebrow">VÉRIFICATION DE LA PAIE</div><h2>Comparer avec ton bulletin</h2>
+    <div class="card">
+      <label>Net payé sur le bulletin (€)<input id="slipNet" type="number" step="0.01" placeholder="Ex. 2 140,50"></label>
+      <label>Brut du bulletin (€)<input id="slipGross" type="number" step="0.01" placeholder="Facultatif"></label>
+      <label>Total cotisations du bulletin (€)<input id="slipDeductions" type="number" step="0.01" placeholder="Facultatif"></label>
+      <div class="button-row right"><button id="compareBtn" class="primary">Comparer</button></div>
+      <div id="comparison" class="comparison muted">Saisis les montants du bulletin pour calculer les écarts.</div>
+    </div>
+    <div class="notice">Un écart est un point à examiner, pas automatiquement une erreur de l'employeur. Les rubriques du bulletin peuvent avoir des assiettes, plafonds ou régularisations qui ne figurent pas dans le classeur.</div>
+  </section>
+
+  <section id="settings" class="panel">
+    <div class="eyebrow">PARAMÈTRES REPRIS DU CLASSEUR</div><h2>Réglages de paie</h2>
+    <div class="card">
+      <h3>Base et éléments variables</h3>
+      <div class="formgrid">
+        <label>Salaire de base (€)<input id="sBase" type="number" step="0.01"></label>
+        <label>Taux horaire (€)<input id="sRate" type="number" step="0.0001"></label>
+        <label>Ancienneté (%)<input id="sSeniority" type="number" step="0.01"></label>
+        <label>HS 25 % — taux horaire (€)<input id="sOt25" type="number" step="0.0001"></label>
+        <label>HS 50 % — taux horaire (€)<input id="sOt50" type="number" step="0.0001"></label>
+        <label>HS non majorées — taux (€)<input id="sNonMaj" type="number" step="0.01"></label>
+        <label>Repas unique PLT (€)<input id="sPlt" type="number" step="0.01"></label>
+        <label>Repas extérieur P.EXT (€)<input id="sPext" type="number" step="0.01"></label>
+        <label>Prime AS / UPH (€)<input id="sAs" type="number" step="0.01"></label>
+        <label>Prime GPJ/N (€)<input id="sGpj" type="number" step="0.01"></label>
+        <label>Dimanche / férié (€)<input id="sDimfer" type="number" step="0.01"></label>
+        <label>Majoration heure fériée (€)<input id="sMajHjf" type="number" step="0.01"></label>
+        <label>Dépassement 12 h (€)<input id="sDep12" type="number" step="0.01"></label>
+        <label>Congé pris — déduction par jour (€)<input id="sCpDed" type="number" step="0.01"></label>
+        <label>Congé payé — indemnité par jour (€)<input id="sCpPay" type="number" step="0.01"></label>
+      </div>
+      <h3 class="spaced">Seuils hebdomadaires</h3>
+      <div class="formgrid">
+        <label>Seuil heures supplémentaires (h)<input id="sThreshold" type="number" step="0.25"></label>
+        <label>Seuil de passage à 150 % (h)<input id="sThreshold150" type="number" step="0.25"></label>
+        <label>Réduction par JF (h)<input id="sJfReduction" type="number" step="0.1"></label>
+        <label>Réduction par CP J (h)<input id="sCpReduction" type="number" step="0.1"></label>
+        <label>Heures ajoutées par semaine complète de congé<input id="sLeaveHours" type="number" step="0.25"></label>
+        <label>Jours CP par semaine complète<input id="sLeaveDays" type="number" step="0.5"></label>
+      </div>
+      <h3 class="spaced">Cotisations et contributions</h3>
+      <div class="formgrid">
+        <label>Incapacité / invalidité (%)<input id="sDisability" type="number" step="0.001"></label>
+        <label>Complément santé fixe (€)<input id="sHealth" type="number" step="0.01"></label>
+        <label>Retraite 1 (%)<input id="sRet1" type="number" step="0.001"></label>
+        <label>Retraite 2 (%)<input id="sRet2" type="number" step="0.001"></label>
+        <label>Retraite 3 (%)<input id="sRet3" type="number" step="0.001"></label>
+        <label>Financement dialogue (%)<input id="sDialogue" type="number" step="0.001"></label>
+        <label>CSG déductible (%)<input id="sCsg1" type="number" step="0.001"></label>
+        <label>CSG non déductible (%)<input id="sCsg2" type="number" step="0.001"></label>
+        <label>Exonération sociale sur HS (%)<input id="sHsExempt" type="number" step="0.001"></label>
+      </div>
+      <div class="button-row right"><button id="resetSettings" class="secondary">Valeurs du classeur</button><button id="saveSettings" class="primary">Enregistrer</button></div>
+    </div>
+    <div class="card">
+      <h3>Données et exports</h3>
+      <p class="muted smalltext">Les données sont conservées localement dans ce navigateur, sur cet appareil. Exporte une sauvegarde régulièrement.</p>
+      <div class="button-row">
+        <button id="exportExcel" class="action">Exporter Excel (.xls)</button>
+        <button id="exportPdfSettings" class="action secondary">Exporter PDF</button>
+      </div>
+      <div class="button-row">
+        <button id="exportJson" class="secondary">Sauvegarde JSON</button>
+        <label class="file-button">Importer JSON<input id="importJson" type="file" accept=".json,application/json"></label>
+      </div>
+      <button id="clearAll" class="danger">Effacer toutes les données</button>
+    </div>
+    <div class="card">
+      <h3>Calculs & limites du classeur</h3>
+      <ul class="limits">
+        <li>La feuille <b>SALAIRE - REF</b> fixe le brut à partir du salaire de base, des congés, des heures supplémentaires, de l'ancienneté et des primes.</li>
+        <li>Les heures supplémentaires sont calculées par semaine : 35 h à 43 h à 125 %, puis au-delà de 43 h à 150 %.</li>
+        <li>La ligne « HS non majorées » utilise un seuil réduit par JF et CP J. Les formules CP J des cellules T20:X20 semblent décalées (elles se référencent entre semaines) ; l'application utilise la valeur 5,8 h indiquée en Z19 comme paramètre modifiable.</li>
+        <li>Les congés complets ajoutent 35 h au total hebdomadaire et 6 jours CP par semaine dans le modèle. Les montants de déduction (70 €) et d'indemnité (75,75 €) par jour sont repris des cellules Z21 et Z22.</li>
+        <li>L'ancienneté est calculée à 2 % de la base + montants HS 25 %, HS 50 % et HS non majorées, comme dans la formule de la feuille de référence.</li>
+        <li>L'exonération sociale de 11,31 % est appliquée aux seuls montants HS 25 % et HS 50 %, comme le formule C25 (qui référence C5+C6).</li>
+        <li>Les cotisations sont simplifiées selon les taux de la feuille : elles sont appliquées au brut sans reproduire les éventuels plafonds et assiettes distinctes d'un bulletin réel.</li>
+        <li>La valeur « Net » est donc une estimation de contrôle, jamais un montant officiel garanti.</li>
+      </ul>
+      <p class="source-note">Classeur source analysé : <b>SALAIRE Ambulancier.xlsx</b> · feuille de référence : <b>SALAIRE - REF</b>.</p>
+    </div>
+  </section>
+</main>
+<footer>SALAIRE Ambulancier · application personnelle · données locales</footer>
+<script src="./salary-core.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
